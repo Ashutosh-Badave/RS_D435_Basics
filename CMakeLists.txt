@@ -6,6 +6,6 @@ find_package(OpenCV 4.3.0 REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-#add_executable(jetson_camera Jetson_camera_launch.cpp)
-#target_link_libraries(jetson_camera ${OpenCV_LIBS})
+add_executable(RS_D435_launch src/RS_D435_launch.cpp)
+target_link_libraries(RS_D435_launch ${OpenCV_LIBS})
 
