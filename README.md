@@ -1,4 +1,4 @@
-# D435 basics applications with OpenCV on Jetson Tx2
+# D435 basics application with OpenCV on Jetson Tx2
 
 <img src="output/Combined_output.png" width="800" height="600"  alt=""/>
 
@@ -16,22 +16,22 @@ outputs as shown in above.
 2. Build librealsense from source using [these instrunction]()
 3. clone this repository
 
-`$ git clone https://github.com/Ashutosh-Badave/RS_D435_Basics.git`
+    `$ git clone https://github.com/Ashutosh-Badave/RS_D435_Basics.git`
         
 4. create build folder
-`$ cd RS_D435_Basics` 
+
+    `$ cd RS_D435_Basics` 
         
-`$ mkdir build && cd build`
+    `$ mkdir build && cd build`
         
 5. cmake and run
         
-```
-        $ cmake ..
+    `$ cmake ..`
        
-        $ make
+    `$ make`
 
-        $ ./RS_D435_launch
- ```
+    `$ ./RS_D435_launch`
+
 
 ### I have created play and save buttons for my convince. 
 When you run it, you need to press a key to start and stop the video stream. If you press *`s`* to stop then all three 
