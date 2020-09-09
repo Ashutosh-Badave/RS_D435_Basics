@@ -28,8 +28,8 @@ int main(int argc, char * argv[]) try
     namedWindow(window_name, WINDOW_AUTOSIZE);
 
     //resizeWindow(window_name,1200,800);
-    int k = cv::waitKey(1); // Wait for a keystroke in the window
-
+    int k = cv::waitKey(0); // Wait for a keystroke in the window
+    Mat visimage;
 
     while (waitKey(1) < 0 && getWindowProperty(window_name, WND_PROP_AUTOSIZE) >= 0)
     {
@@ -53,11 +53,13 @@ int main(int argc, char * argv[]) try
         // Print the distance
         std::cout << "The camera is facing an object " << dist_to_center << " meters away \n";
 
-        if (k=='s')
-        {
-            imwrite("../output.png",image);
-        }
+        visimage = image;
 
+    }
+    if (k=='s')
+    {
+        imwrite("../output/output.png",visimage);
+        std::cout << "Image is saved " << std::endl;
     }
 
     return EXIT_SUCCESS;
