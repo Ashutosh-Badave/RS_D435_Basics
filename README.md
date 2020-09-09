@@ -15,14 +15,23 @@ outputs as shown in above.
 1. Build *`OpenCV`* from source using [guide](https://docs.opencv.org/trunk/d7/d9f/tutorial_linux_install.html) 
 2. Build librealsense from source using [these instrunction]()
 3. clone this repository
+
         `$ git clone https://github.com/Ashutosh-Badave/RS_D435_Basics.git`
+        
 4. create build folder
         `$ cd RS_D435_Basics` 
+        
         `$ mkdir build && cd build`
+        
 5. cmake and run
-        `$ cmake ..`
-        `$ make`
-        `$ ./RS_D435_launch`
+        
+        ```
+        $ cmake ..
+       
+        $ make
+
+        $ ./RS_D435_launch
+        ```
 
 ### I have created play and save buttons for my convince. 
 When you run it, you need to press a key to start and stop the video stream. If you press *`s`* to stop then all three 
