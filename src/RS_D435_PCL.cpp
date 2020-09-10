@@ -44,13 +44,48 @@ pcl_ptr points_to_pcl(const rs2::points& points)
 
     return cloud;
 }
+void renderPointCloud(pcl::visualization::PCLVisualizer::Ptr& viewer, const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, std::string name, Color color = Color(1,1,1))
+{
+
+    viewer->addPointCloud<pcl::PointXYZ> (cloud, name);
+    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 4, name);
+    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_COLOR, color.r, color.g, color.b, name);
+}
+
+
+pcl::visualization::PCLVisualizer::Ptr simpleVis ()
+{
+    // --------------------------------------------
+    // -----Open 3D viewer and add point cloud-----
+    // --------------------------------------------
+    pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+    viewer->setBackgroundColor (0, 0, 0);
+    //viewer->addPointCloud<pcl::PointXYZ> (cloud, "sample cloud");
+    //viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
+    viewer->setCameraPosition(0, 0, 15, 0, 1, 0);
+    viewer->addCoordinateSystem (1.0);
+    return (viewer);
+}
 
 int main()try
 {
+    // Create viewer
+    pcl::visualization::PCLVisualizer::Ptr viewer = simpleVis();
+
+    // Declare pointcloud object, for calculating pointclouds and texture mappings
+    rs2::pointcloud pc;
+    // We want the points object to be persistent so we can display the last cloud when a frame drops
+    rs2::points points;
+
     // Declare RealSense pipeline, encapsulating the actual device and sensors
     rs2::pipeline pipe;
     // Start streaming with default recommended configuration
     pipe.start();
+
+    while (!viewer->wasStopped ())
+    {
+    viewer->removeAllPointClouds();
+    viewer->removeAllShapes();
 
     // Wait for the next set of frames from the camera
     auto frames = pipe.wait_for_frames();
@@ -60,7 +95,7 @@ int main()try
     // Generate the pointcloud and texture mappings
     points = pc.calculate(depth);
 
-    auto pcl_points = points_to_pcl(points);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_points = points_to_pcl(points);
 
     pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PassThrough<pcl::PointXYZ> pass;
@@ -72,6 +107,12 @@ int main()try
     std::vector<pcl_ptr> layers;
     layers.push_back(pcl_points);
     layers.push_back(cloud_filtered);
+
+    renderPointCloud(viewer,pcl_points,"data");
+
+
+        viewer->spinOnce ();
+    }
 
 
 }catch (const rs2::error & e)
