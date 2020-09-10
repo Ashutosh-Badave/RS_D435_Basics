@@ -65,7 +65,9 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr points_to_pcl(const rs2::points& points, 
 void renderPointCloud(pcl::visualization::PCLVisualizer::Ptr& viewer, const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud, std::string name, Color color = Color(1,1,1))
 {
 
-    viewer->addPointCloud<pcl::PointXYZRGB> (cloud, name);
+    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
+    viewer->addPointCloud<pcl::PointXYZRGB> (cloud,rgb, name);
+    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, name);
     //viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 4, name);
     //viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_COLOR, color.r, color.g, color.b, name);
 }
@@ -80,7 +82,7 @@ pcl::visualization::PCLVisualizer::Ptr simpleVis ()
     viewer->setBackgroundColor (0, 0, 0);
     //viewer->addPointCloud<pcl::PointXYZ> (cloud, "sample cloud");
     //viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
-    viewer->setCameraPosition(0, 0, 15, 0, 1, 0);
+    viewer->setCameraPosition(0, -5, -5,    0, 0, 0,   0, 0, 1);
     viewer->addCoordinateSystem (1.0);
     return (viewer);
 }
