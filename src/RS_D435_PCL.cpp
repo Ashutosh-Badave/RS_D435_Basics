@@ -11,6 +11,19 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/filters/passthrough.h>
 
+using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
+
+struct Color
+{
+
+    float r, g, b;
+
+    Color(float setR, float setG, float setB)
+            : r(setR), g(setG), b(setB)
+    {}
+};
+
+
 pcl_ptr points_to_pcl(const rs2::points& points)
 {
     pcl_ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
@@ -59,4 +72,6 @@ int main()
     std::vector<pcl_ptr> layers;
     layers.push_back(pcl_points);
     layers.push_back(cloud_filtered);
+
+
 }
