@@ -19,62 +19,70 @@
 
 
 using namespace cv;
-using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
+using pcl_ptr = pcl::PointCloud<pcl::PointXYZRGB>::Ptr;
 
-struct Color
+std::tuple<uint8_t, uint8_t, uint8_t> get_texcolor(rs2::video_frame texture, rs2::texture_coordinate texcoords)
 {
+    const int w = texture.get_width(), h = texture.get_height();
+    int x = std::min(std::max(int(texcoords.u*w + .5f), 0), w - 1);
+    int y = std::min(std::max(int(texcoords.v*h + .5f), 0), h - 1);
+    int idx = x * texture.get_bytes_per_pixel() + y * texture.get_stride_in_bytes();
+    const auto texture_data = reinterpret_cast<const uint8_t*>(texture.get_data());
+    return std::tuple<uint8_t, uint8_t, uint8_t>(
+            texture_data[idx], texture_data[idx + 1], texture_data[idx + 2]);
+}
 
-    float r, g, b;
-
-    Color(float setR, float setG, float setB)
-            : r(setR), g(setG), b(setB)
-    {}
-};
-
-pcl_ptr points_to_pcl(const rs2::points& points)
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr points_to_pcl(const rs2::points& points, const rs2::video_frame& color)
 {
-    pcl_ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl_ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
 
     auto sp = points.get_profile().as<rs2::video_stream_profile>();
     cloud->width = sp.width();
     cloud->height = sp.height();
     cloud->is_dense = false;
     cloud->points.resize(points.size());
-    auto ptr = points.get_vertices();
-    for (auto& p : cloud->points)
-    {
-        p.x = ptr->x;
-        p.y = ptr->y;
-        p.z = ptr->z;
-        ptr++;
-    }
+    auto tex_coords = points.get_texture_coordinates();
+    auto vertices = points.get_vertices();
 
+    for (int i = 0; i < points.size(); ++i)
+    {
+        cloud->points[i].x = vertices[i].x;
+        cloud->points[i].y = vertices[i].y;
+        cloud->points[i].z = vertices[i].z;
+
+        std::tuple<uint8_t, uint8_t, uint8_t> current_color;
+        current_color = get_texcolor(color, tex_coords[i]);
+
+        cloud->points[i].r = std::get<0>(current_color);
+        cloud->points[i].g = std::get<1>(current_color);
+        cloud->points[i].b = std::get<2>(current_color);
+    }
     return cloud;
 }
-
-void renderPointCloud(pcl::visualization::PCLVisualizer::Ptr& viewer, const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, std::string name, Color color = Color(1,1,1))
+void renderPointCloud(pcl::visualization::PCLVisualizer::Ptr& viewer, const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud, std::string name)
 {
 
-    viewer->addPointCloud<pcl::PointXYZ> (cloud, name);
-    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 4, name);
-    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_COLOR, color.r, color.g, color.b, name);
+    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
+    viewer->addPointCloud<pcl::PointXYZRGB> (cloud,rgb, name);
+    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, name);
+    //viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 4, name);
+    //viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_COLOR, color.r, color.g, color.b, name);
 }
 
 
 pcl::visualization::PCLVisualizer::Ptr simpleVis ()
 {
-  // --------------------------------------------
-  // -----Open 3D viewer and add point cloud-----
-  // --------------------------------------------
-  pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
-  viewer->setBackgroundColor (0, 0, 0);
-  //viewer->addPointCloud<pcl::PointXYZ> (cloud, "sample cloud");
-  //viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
-  viewer->setCameraPosition(0, 0, 15, 0, 1, 0);
-  viewer->addCoordinateSystem (1.0);
-  return (viewer);
+    // --------------------------------------------
+    // -----Open 3D viewer and add point cloud-----
+    // --------------------------------------------
+    pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+    viewer->setBackgroundColor (0, 0, 0);
+    //viewer->addPointCloud<pcl::PointXYZ> (cloud, "sample cloud");
+    //viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
+    viewer->setCameraPosition(0, -5, -5,    0, 0, 0,   0, 0, 1);
+    viewer->addCoordinateSystem (1.0);
+    return (viewer);
 }
-
 
 int main(int argc, char * argv[]) try
 {
@@ -116,7 +124,10 @@ int main(int argc, char * argv[]) try
         // Generate the pointcloud and texture mappings
         points = pc.calculate(depth_frame);
 
-        auto pcl_cloud = points_to_pcl(points);
+        //auto pcl_cloud = points_to_pcl(points);
+        pc.map_to(color_frame);
+
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_points = points_to_pcl(points,color_frame);
 
         // Query frame size (width and height)
         const int w = depth.as<rs2::video_frame>().get_width();
@@ -142,7 +153,7 @@ int main(int argc, char * argv[]) try
         // Print the distance
         std::cout << "The camera is facing an object " << dist_to_center << " meters away \n";
 
-        renderPointCloud(viewer,pcl_cloud,"data");
+        renderPointCloud(viewer,pcl_points,"data");
 
         viewer->spinOnce ();
 
