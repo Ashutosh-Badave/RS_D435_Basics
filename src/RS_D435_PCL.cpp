@@ -10,19 +10,10 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/filters/passthrough.h>
+#include "../include/processPointClouds.h"
+#include "../include/processPointClouds.cpp"
 
 using pcl_ptr = pcl::PointCloud<pcl::PointXYZRGB>::Ptr;
-
-struct Color
-{
-
-    float r, g, b;
-
-    Color(float setR, float setG, float setB)
-            : r(setR), g(setG), b(setB)
-    {}
-};
-
 
 std::tuple<uint8_t, uint8_t, uint8_t> get_texcolor(rs2::video_frame texture, rs2::texture_coordinate texcoords)
 {
