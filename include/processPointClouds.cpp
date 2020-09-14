@@ -26,45 +26,56 @@ typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(ty
 
     // Time segmentation process
     auto startTime = std::chrono::steady_clock::now();
-    typename pcl::PointCloud<PointT>::Ptr cloud_filtered  (new pcl::PointCloud<PointT>);
-    typename pcl::PointCloud<PointT>::Ptr cloud_filtered2 (new pcl::PointCloud<PointT>);
-    // TODO:: Fill in the function to do voxel grid point reduction and region based filtering
+    typename pcl::PointCloud<PointT>::Ptr cloud_filtered(new pcl::PointCloud<PointT>);
+    typename pcl::PointCloud<PointT>::Ptr cloud_filtered2(new pcl::PointCloud<PointT>);
+    typename pcl::PointCloud<PointT>::Ptr cloud_filtered3(new pcl::PointCloud<PointT>());
+    std::cout << "points before filter: " << cloud->points.size() << std::endl;
+
+
+    typename pcl::PassThrough<PointT> pass;
+    pass.setInputCloud(cloud);
+    pass.setFilterFieldName("y");
+
+    pass.setFilterLimits(-2, 1.25);
+    //pass.setFilterLimitsNegative (true);
+    pass.filter(*cloud_filtered3);
+
+    // Voxel grid point reduction and region based filtering
     typename pcl::VoxelGrid<PointT> sor;
-    sor.setInputCloud (cloud);
-    sor.setLeafSize (filterRes,filterRes,filterRes);
-    sor.filter (*cloud_filtered);
+    sor.setInputCloud(cloud);
+    sor.setLeafSize(filterRes, filterRes, filterRes);
+    sor.filter(*cloud_filtered);
 
     typename pcl::CropBox<PointT> ROI(true);
     ROI.setInputCloud(cloud_filtered);
     ROI.setMin(minPoint);
     ROI.setMax(maxPoint);
     ROI.filter(*cloud_filtered2);
-    
-    typename pcl::CropBox<PointT> Remove_roof(true);
-    Remove_roof.setInputCloud(cloud_filtered2);
-    std::vector<int> indices;
-    Remove_roof.setMin(Eigen::Vector4f(-1.5,-1.7,-1,1));
-    Remove_roof.setMax(Eigen::Vector4f(2.7,1.8,-.4,1));
-    Remove_roof.filter(indices);
 
-    pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
-    for (int index : indices)
-        inliers->indices.push_back(index);
-    
-    pcl::ExtractIndices<PointT> extract;
+    /* typename pcl::CropBox<PointT> Remove_roof(true);
+     Remove_roof.setInputCloud(cloud_filtered2);
+     std::vector<int> indices;
+     Remove_roof.setMin(Eigen::Vector4f(-1.5,-1.7,-1,1));
+     Remove_roof.setMax(Eigen::Vector4f(2.7,1.8,-.4,1));
+     Remove_roof.filter(indices);
 
-    extract.setInputCloud (cloud_filtered2);
-    extract.setIndices (inliers);
+     pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+     for (int index : indices)
+         inliers->indices.push_back(index);
 
-    extract.setNegative (true);
-    extract.filter(*cloud_filtered2);
+     pcl::ExtractIndices<PointT> extract;
 
+     extract.setInputCloud (cloud_filtered2);
+     extract.setIndices (inliers);
+
+     extract.setNegative (true);
+     extract.filter(*cloud_filtered2); */
 
 
     auto endTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
     std::cout << "filtering took " << elapsedTime.count() << " milliseconds" << std::endl;
-
+    std::cout << "points after filter: " << cloud_filtered2->points.size() << std::endl;
     return cloud_filtered2;
 
 }
