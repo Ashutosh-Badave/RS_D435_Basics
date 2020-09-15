@@ -69,8 +69,6 @@ static void* userInput_thread(void*)
 }
 
 
-using pcl_ptr = pcl::PointCloud<pcl::PointXYZRGB>::Ptr;
-
 std::tuple<uint8_t, uint8_t, uint8_t> get_texcolor(rs2::video_frame texture, rs2::texture_coordinate texcoords) {
     const int w = texture.get_width(), h = texture.get_height();
     int x = std::min(std::max(int(texcoords.u * w + .5f), 0), w - 1);
@@ -81,8 +79,27 @@ std::tuple<uint8_t, uint8_t, uint8_t> get_texcolor(rs2::video_frame texture, rs2
             texture_data[idx], texture_data[idx + 1], texture_data[idx + 2]);
 }
 
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr points_to_pcl(const rs2::points &points, const rs2::video_frame &color) {
-    pcl_ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+pcl::PointCloud<pcl::PointXYZ>::Ptr points_to_pcl(const rs2::points &points, const rs2::video_frame &color) {
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+
+    auto sp = points.get_profile().as<rs2::video_stream_profile>();
+    cloud->width = sp.width();
+    cloud->height = sp.height();
+    cloud->is_dense = false;
+    cloud->points.resize(points.size());
+    auto ptr = points.get_vertices();
+    for (auto &p : cloud->points) {
+        p.x = ptr->x;
+        p.y = ptr->y;
+        p.z = ptr->z;
+        ptr++;
+    }
+
+    return cloud;
+}
+
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr points_to_pclrgb(const rs2::points &points, const rs2::video_frame &color) {
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
 
     auto sp = points.get_profile().as<rs2::video_stream_profile>();
     cloud->width = sp.width();
@@ -180,7 +197,7 @@ int main() try {
         points = pc.calculate(depth);
         pc.map_to(color);
 
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_points = points_to_pcl(points, color);
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_points = points_to_pclrgb(points, color);
 
         /*pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PassThrough<pcl::PointXYZ> pass;
