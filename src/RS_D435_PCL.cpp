@@ -4,10 +4,12 @@
 //
 
 #include <iostream>
+#include <fstream>
 #include <numeric>
 #include <pthread.h>
 #include<string>
 #include <librealsense2/rs.hpp>
+#include <librealsense2/rs_advanced_mode.hpp>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -18,11 +20,14 @@
 static volatile bool keep_running = true;
 static volatile bool captureLoop = false;
 
-static void* userInput_thread(void*)
-{
+class advanced_mode;
+
+class advanced_mode;
+
+static void *userInput_thread(void *) {
     //bool captureLoop;
     bool inputCheck = false;
-    char takeFrame ; // Utilize to trigger frame capture from key press ('t')
+    char takeFrame; // Utilize to trigger frame capture from key press ('t')
     do {
 
         // Prompt User to execute frame capture algorithm
@@ -160,7 +165,8 @@ int main() try {
     //====================
     // Object Declaration
     //====================
-    ProcessPointClouds<pcl::PointXYZRGB> *pointProcessorRGB = new ProcessPointClouds<pcl::PointXYZRGB>();
+    //ProcessPointClouds<pcl::PointXYZRGB> *pointProcessorRGB = new ProcessPointClouds<pcl::PointXYZRGB>();
+    ProcessPointClouds<pcl::PointXYZ> *pointProcessor = new ProcessPointClouds<pcl::PointXYZ>();
     // Create viewer
     pcl::visualization::PCLVisualizer::Ptr viewer = simpleVis();
 
@@ -171,8 +177,29 @@ int main() try {
 
     // Declare RealSense pipeline, encapsulating the actual device and sensors
     rs2::pipeline pipe;
+
+    rs2::config cfg;
+    cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 30);
+    cfg.enable_stream(RS2_STREAM_INFRARED, 848, 480, RS2_FORMAT_Y8, 30);
+    cfg.enable_stream(RS2_STREAM_COLOR, 848, 480, RS2_FORMAT_RGB8, 30);
     // Start streaming with default recommended configuration
-    pipe.start();
+    /*std::ifstream file("./camera_settings.json");
+    if (file.good())
+    {
+        std::string str((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+        auto prof = cfg.resolve(pipe);
+        if (auto advanced = prof.get_device().as<rs400::advanced_mode>())
+        {
+            advanced.load_json(str);
+        }
+    }
+    else
+    {
+        std::cout << "Couldn't find camera-settings.json, skipping custom settings!" << std::endl;
+    }*/
+
+    pipe.start(cfg);
     // Loop and take frame captures upon user input
     while (!viewer->wasStopped()) {
 
@@ -197,8 +224,8 @@ int main() try {
         points = pc.calculate(depth);
         pc.map_to(color);
 
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_points = points_to_pclrgb(points, color);
-
+        //pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_points = points_to_pclrgb(points, color);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_points = points_to_pcl(points, color);
         /*pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PassThrough<pcl::PointXYZ> pass;
         pass.setInputCloud(pcl_points);
@@ -215,7 +242,8 @@ int main() try {
         if (captureLoop == true) {
             std::string cloudFile = "../Captured_Frame" + std::to_string(i) + ".pcd";
 
-            pointProcessorRGB->savePcd(pcl_points, cloudFile);
+            //pointProcessorRGB->savePcd(pcl_points, cloudFile);
+            pointProcessor->savePcd(pcl_points, cloudFile);
             captureLoop == false;
             i++;
 
