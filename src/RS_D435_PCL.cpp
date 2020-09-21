@@ -165,11 +165,18 @@ int main() try {
     //====================
     // Object Declaration
     //====================
-    //ProcessPointClouds<pcl::PointXYZRGB> *pointProcessorRGB = new ProcessPointClouds<pcl::PointXYZRGB>();
+    ProcessPointClouds<pcl::PointXYZRGB> *pointProcessorRGB = new ProcessPointClouds<pcl::PointXYZRGB>();
     ProcessPointClouds<pcl::PointXYZ> *pointProcessor = new ProcessPointClouds<pcl::PointXYZ>();
     // Create viewer
-    pcl::visualization::PCLVisualizer::Ptr viewer = simpleVis();
+    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
+    viewer->setBackgroundColor(0, 0, 0);
+    viewer->setCameraPosition(0, -5, -5, 0, 0, 0, 0, 0, 1);
+    viewer->addCoordinateSystem(1.0);
 
+    pcl::visualization::PCLVisualizer::Ptr viewer1(new pcl::visualization::PCLVisualizer("3D Viewer1"));
+    viewer1->setBackgroundColor(0, 0, 10);
+    viewer1->setCameraPosition(0, -5, -5, 0, 0, 0, 0, 0, 1);
+    viewer1->addCoordinateSystem(1.0);
     // Declare pointcloud object, for calculating pointclouds and texture mappings
     rs2::pointcloud pc;
     // We want the points object to be persistent so we can display the last cloud when a frame drops
@@ -206,7 +213,8 @@ int main() try {
 
         viewer->removeAllPointClouds();
         viewer->removeAllShapes();
-
+        viewer1->removeAllPointClouds();
+        viewer1->removeAllShapes();
 
 
 //        // Wait for frames from the camera to settle
@@ -214,7 +222,7 @@ int main() try {
 //            auto frames = pipe.wait_for_frames(); //Drop several frames for auto-exposure
 //        }
 
-        // Wait for the next set of frames from the camera
+        // Wait for the next set of frames from the camerae
         auto frames = pipe.wait_for_frames();
 
         auto depth = frames.get_depth_frame();
@@ -224,8 +232,8 @@ int main() try {
         points = pc.calculate(depth);
         pc.map_to(color);
 
-        //pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_points = points_to_pclrgb(points, color);
-        pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_points = points_to_pcl(points, color);
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_points_RGB = points_to_pclrgb(points, color);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_points_noRGB = points_to_pcl(points, color);
         /*pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PassThrough<pcl::PointXYZ> pass;
         pass.setInputCloud(pcl_points);
@@ -237,18 +245,23 @@ int main() try {
         layers.push_back(pcl_points);
         layers.push_back(cloud_filtered);*/
 
-        renderPointCloud(viewer, pcl_points, "data");
+        renderPointCloud(viewer, pcl_points_RGB, "data");
+
+
+        viewer1->addPointCloud<pcl::PointXYZ>(pcl_points_noRGB, "Data1");
+        viewer1->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "Data1");
 
         if (captureLoop == true) {
-            std::string cloudFile = "../Captured_Frame" + std::to_string(i) + ".pcd";
-
-            //pointProcessorRGB->savePcd(pcl_points, cloudFile);
-            pointProcessor->savePcd(pcl_points, cloudFile);
+            std::string cloudFile_RGB = "../Captured_Frame_rgb_" + std::to_string(i) + ".pcd";
+            std::string cloudFile_noRGB = "../Captured_Frame_norgb_" + std::to_string(i) + ".pcd";
+            pointProcessorRGB->savePcd(pcl_points_RGB, cloudFile_RGB);
+            pointProcessor->savePcd(pcl_points_noRGB, cloudFile_noRGB);
             captureLoop == false;
             i++;
 
         }
         viewer->spinOnce(100);
+        viewer1->spinOnce(100);
 
 
     }
