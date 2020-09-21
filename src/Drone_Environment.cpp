@@ -19,11 +19,12 @@
 int main() {
     std::cout << "starting enviroment" << std::endl;
 
-    ProcessPointClouds<pcl::PointXYZ> *pointProcessor = new ProcessPointClouds<pcl::PointXYZ>();
-    //pcl::PointCloud<pcl::PointXYZ>::Ptr inputCloud = pointProcessorI->loadPcd("../Captured_Frame_test.pcd");
-    //ProcessPointClouds<pcl::PointXYZRGB> *pointProcessorI = new ProcessPointClouds<pcl::PointXYZRGB>();
-    //pcl::PointCloud<pcl::PointXYZRGB>::Ptr inputCloud = pointProcessorRGB->loadPcd("../Captured_Frame_rgb_1.pcd");
+    pcl::visualization::PCLVisualizer::Ptr viewer1(new pcl::visualization::PCLVisualizer("3D Viewer1"));
+    viewer1->setBackgroundColor(0, 0, 0);
+    viewer1->setCameraPosition(0, -5, -5, 0, 0, 0, 0, 0, 1);
+    viewer1->addCoordinateSystem(1.0);
 
+    ProcessPointClouds<pcl::PointXYZ> *pointProcessor = new ProcessPointClouds<pcl::PointXYZ>();
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_noRGB = pointProcessor->loadPcd("../Captured_Frame_norgb_1.pcd");
     // TODO: Downsizing of pointclouds
     pcl::PointCloud<pcl::PointXYZ>::Ptr filteredCloud = pointProcessor->FilterCloud(cloud_noRGB, 0.18,
@@ -31,10 +32,30 @@ int main() {
                                                                                                     1),
                                                                                     Eigen::Vector4f(2, 2, 10, 1));
 
-    // TODO: Segmentation of pointclouds
+    // Segmentation of pointclouds
     std::pair<pcl::PointCloud<pcl::PointXYZ>::Ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr> SegmentCloud = pointProcessor->SegmentPlane(
             filteredCloud, 100, 0.5);
+    //renderPointCloud(viewer1, SegmentCloud.first, "planeCloud", Color(1, 0, 0));
+    // Clustering of pointclouds
+    std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloudClusters = pointProcessor->Clustering(SegmentCloud.first, 0.4,
+                                                                                                12, 500);
 
+    int clusterId = 0, colorid = 2;
+    std::vector<Color> colors = {Color(1, 0, 0), Color(1, 1, 0), Color(0, 0, 1)};
+
+    for (pcl::PointCloud<pcl::PointXYZ>::Ptr cluster : cloudClusters) {
+
+        std::cout << "cluster size ";
+        pointProcessor->numPoints(cluster);
+        renderPointCloud(viewer1, cluster, "obstCloud" + std::to_string(clusterId), colors[colorid]);
+        Box box = pointProcessor->BoundingBox(cluster);
+        renderBox(viewer1, box, clusterId);
+
+        //BoxQ boxQ = pointProcessorI->BoundingBoxQ(cluster);
+        // renderBox(viewer,boxQ,clusterId);
+        ++clusterId;
+        colorid = clusterId % 3;
+    }
     /*cloud_noRGB->width = inputCloud->width;
     cloud_noRGB->height = inputCloud->height;
     cloud_noRGB->is_dense = false;
@@ -55,11 +76,8 @@ int main() {
     viewer->addPointCloud<pcl::PointXYZRGB>(inputCloud, "Data");
     viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "Data");*/
 
-    pcl::visualization::PCLVisualizer::Ptr viewer1(new pcl::visualization::PCLVisualizer("3D Viewer1"));
-    viewer1->setBackgroundColor(0, 0, 0);
-    viewer1->setCameraPosition(0, -5, -5, 0, 0, 0, 0, 0, 1);
-    viewer1->addCoordinateSystem(1.0);
-    renderPointCloud(viewer1, SegmentCloud.first, "planeCloud", Color(1, 0, 0));
+
+
     while (!viewer1->wasStopped()) {
 
         viewer1->spinOnce();
